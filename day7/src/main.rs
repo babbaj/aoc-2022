@@ -79,13 +79,13 @@ fn recurse_directories<'a, F>(tree: &'a FileTree<'a>, p: &mut Path<'a>, f: &mut 
     }
 }
 
-// TODO: optimize with dynamic programming
 fn compute_dir_size_recursive<'a>(tree: &'a FileTree<'a>, p: &mut Path<'a>) -> usize {
     let mut total_size = 0usize;
     recurse_files(&tree, p, &mut |_, size| total_size += size);
     return total_size;
 }
 
+// TODO: optimize with dynamic programming
 fn compute_all_dir_sizes<'a>(tree: &'a FileTree<'a>) -> Vec<(&'a str, usize)> {
     let mut root = vec![];
     let mut out = vec![];
@@ -106,7 +106,7 @@ fn main() {
     let mut directory_map = FileTree::new();
 
     let mut cwd = Path::new();
-    let mut prev_cmd = Cmd::CD("/"); // not actually necessary
+    let mut prev_cmd = Cmd::CD("/");
     let mut current_entries = Vec::<LsEntry>::new();
     loop {
         let next = lines_iter.next();
