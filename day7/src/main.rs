@@ -79,6 +79,7 @@ fn recurse_directories<'a, F>(tree: &'a FileTree<'a>, p: &mut Path<'a>, f: &mut 
     }
 }
 
+// TODO: optimize with dynamic programming
 fn compute_dir_size_recursive<'a>(tree: &'a FileTree<'a>, p: &mut Path<'a>) -> usize {
     let mut total_size = 0usize;
     recurse_files(&tree, p, &mut |_, size| total_size += size);
@@ -156,4 +157,15 @@ fn main() {
         .map(|(_, size)| size)
         .sum::<usize>();
     println!("part 1 = {}", part1);
+
+    const TOTAL_SPACE: usize = 70000000;
+    const REQUIRED_FREE_SPACE: usize = 30000000;
+    let free_space = TOTAL_SPACE - total_size;
+    let to_be_freed = REQUIRED_FREE_SPACE - free_space;
+    println!("need to free {} space", to_be_freed);
+    let part2 = sizes.iter().copied()
+        .filter_map(|(_, size)| if size >= to_be_freed { Some(size) } else { None })
+        .min()
+        .unwrap();
+    println!("part 2 = {}", part2);
 }
