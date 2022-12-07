@@ -33,7 +33,7 @@ struct FileNode<'a> {
 type Path<'a> = Vec<&'a str>;
 type FileTree<'a> = HashMap<Path<'a>, Box<FileNode<'a>>>;
 
-fn recurse_files<'a, F>(tree: &'a FileTree<'a>, p: &mut Path<'a>, f: &mut F)
+fn recurse_files<'a, F>(tree: &FileTree<'a>, p: &mut Path<'a>, f: &mut F)
 where F: FnMut(&'a str, usize)
 {
     let node = &tree.get(p).unwrap().data;
@@ -59,7 +59,7 @@ where F: FnMut(&'a str, usize)
     }
 }
 
-fn recurse_directories<'a, F>(tree: &'a FileTree<'a>, p: &mut Path<'a>, f: &mut F)
+fn recurse_directories<'a, F>(tree: &FileTree<'a>, p: &mut Path<'a>, f: &mut F)
     where F: FnMut(&Path, &'a str, &Vec<LsEntry<'a>>)
 {
     let node = &tree.get(p).unwrap().data;
@@ -79,14 +79,14 @@ fn recurse_directories<'a, F>(tree: &'a FileTree<'a>, p: &mut Path<'a>, f: &mut 
     }
 }
 
-fn compute_dir_size_recursive<'a>(tree: &'a FileTree<'a>, p: &mut Path<'a>) -> usize {
+fn compute_dir_size_recursive<'a>(tree: &FileTree<'a>, p: &mut Path<'a>) -> usize {
     let mut total_size = 0usize;
     recurse_files(&tree, p, &mut |_, size| total_size += size);
     return total_size;
 }
 
 // TODO: optimize with dynamic programming
-fn compute_all_dir_sizes<'a>(tree: &'a FileTree<'a>) -> Vec<(&'a str, usize)> {
+fn compute_all_dir_sizes<'a>(tree: &FileTree<'a>) -> Vec<(&'a str, usize)> {
     let mut root = vec![];
     let mut out = vec![];
     recurse_directories(tree, &mut root, &mut |path, name, children| {
@@ -122,7 +122,6 @@ fn main() {
 
         let line = next.unwrap();
         if line.starts_with('$') {
-
             let cmd = &line[2..];
             match cmd.split_once(' ') {
                 Some(("cd", dir)) => {
@@ -131,7 +130,6 @@ fn main() {
                     } else {
                         cwd.push(dir);
                     }
-
                     prev_cmd = Cmd::CD(dir)
                 },
                 _ => {
@@ -145,7 +143,6 @@ fn main() {
             current_entries.push(parse_ls_line(line));
         }
     }
-
 
     let mut root: Path = vec![];
     let total_size = compute_dir_size_recursive(&directory_map, &mut root);
