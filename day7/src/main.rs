@@ -31,7 +31,7 @@ struct FileNode<'a> {
 }
 
 type Path<'a> = Vec<&'a str>;
-type FileTree<'a> = HashMap<Path<'a>, Box<FileNode<'a>>>;
+type FileTree<'a> = HashMap<Path<'a>, FileNode<'a>>;
 
 fn recurse_files<'a, F>(tree: &FileTree<'a>, p: &mut Path<'a>, f: &mut F)
 where F: FnMut(&'a str, usize)
@@ -112,10 +112,10 @@ fn main() {
         let next = lines_iter.next();
         // if this is a new command after ls or EOF
         if next.map_or(true, |l| l.starts_with('$') && prev_cmd == Cmd::LS) {
-            directory_map.insert(cwd.clone(), Box::new(FileNode {
+            directory_map.insert(cwd.clone(), FileNode {
                 parent: cwd.iter().rev().nth(1).map_or(None, |s| Some(*s)),
                 data: NodeData::Dir(cwd.last().map_or("/", |s| *s), current_entries),
-            }));
+            });
             current_entries = Vec::new();
         }
         if next.is_none() { break };
