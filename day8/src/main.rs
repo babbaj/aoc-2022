@@ -12,9 +12,10 @@ where I: Iterator<Item = ((usize, usize), u8)>
             visible.insert(pos);
         }
     }
+
 }
 
-fn score_for_line<I>(tree_in: u8, mut line: I) -> i64
+fn score_for_line<I>(tree_in: u8, line: I) -> i64
     where I: Iterator<Item = u8>
 {
     let mut out = 0;
@@ -64,8 +65,8 @@ fn main() {
     }
     println!("visible len = {}", visible_trees.len());
 
-    let highest_score = visible_trees.iter()
-        .map(|(x, y)| ((x, y), scenic_score(&data, *x, *y)))
+    let highest_score = (0..cols).flat_map(|x| (0..rows).map(move |y| (x, y)))
+        .map(|(x, y)| ((x, y), scenic_score(&data, x, y)))
         .max_by_key(|(_, score)| *score)
         .unwrap();
     println!("highest score = {:?}", highest_score);
