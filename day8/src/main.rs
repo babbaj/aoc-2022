@@ -1,15 +1,15 @@
-use std::collections::{HashMap};
+use std::collections::HashSet;
 
-fn scan_line<I>(visible: &mut HashMap::<(usize, usize), u8>, mut line: I)
+fn scan_line<I>(visible: &mut HashSet<(usize, usize)>, mut line: I)
 where I: Iterator<Item = ((usize, usize), u8)>
 {
     let (first_pos, first_tree) = line.next().unwrap();
-    visible.insert(first_pos, first_tree);
+    visible.insert(first_pos);
     let mut highest = first_tree;
     for (pos, tree) in line {
         if tree > highest {
             highest = tree;
-            visible.insert(pos, tree);
+            visible.insert(pos);
         }
     }
 }
@@ -51,7 +51,7 @@ fn main() {
     let cols = data[0].len();
     let rows = data.len();
 
-    let mut visible_trees = HashMap::<(usize, usize), u8>::new();
+    let mut visible_trees = HashSet::<(usize, usize)>::new();
     for x in 0..cols {
         let vertical = (0..rows).map(|y| ((x, y), data[y][x]));
         scan_line(&mut visible_trees, vertical.clone());
@@ -65,7 +65,7 @@ fn main() {
     println!("visible len = {}", visible_trees.len());
 
     let highest_score = visible_trees.iter()
-        .map(|((x, y), _)| ((x, y), scenic_score(&data, *x, *y)))
+        .map(|(x, y)| ((x, y), scenic_score(&data, *x, *y)))
         .max_by_key(|(_, score)| *score)
         .unwrap();
     println!("highest score = {:?}", highest_score);
