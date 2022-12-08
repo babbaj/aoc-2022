@@ -14,56 +14,29 @@ where I: Iterator<Item = ((usize, usize), u8)>
     }
 }
 
+fn score_for_line<I>(tree_in: u8, mut line: I) -> i32
+    where I: Iterator<Item = u8>
+{
+    let mut out = 0;
+    for tree in line {
+        out += 1;
+        if tree >= tree_in {
+            break;
+        }
+    }
+    return out;
+}
+
 fn scenic_score(data: &Vec<Vec<u8>>, tree_x: usize, tree_y: usize) -> i32 {
     let cols = data[0].len();
     let rows = data.len();
     let tree_in = data[tree_y][tree_x];
     let mut score_out = 1;
-    if tree_x > 0 {
-        let mut score = 0;
-        for x in (0..tree_x).rev() {
-            let tree = data[tree_y][x];
-            score += 1;
-            if tree >= tree_in {
-                break;
-            }
-        }
-        score_out *= score;
-    } else { return 0 }
-    if tree_x < cols - 1 {
-        let mut score = 0;
-        for x in (tree_x + 1)..cols {
-            let tree = data[tree_y][x];
-            score += 1;
-            if tree >= tree_in {
-                break;
-            }
-        }
-        score_out *= score;
-    } else { return 0 }
+    score_out *= score_for_line(tree_in, ((0..tree_x).rev()).map(|x| data[tree_y][x]));
+    score_out *= score_for_line(tree_in, ((tree_x + 1)..cols).map(|x| data[tree_y][x]));
 
-    if tree_y > 0 {
-        let mut score = 0;
-        for y in (0..tree_y).rev() {
-            let tree = data[y][tree_x];
-            score += 1;
-            if tree >= tree_in {
-                break;
-            }
-        }
-        score_out *= score;
-    } else { return 0 }
-    if tree_y < rows - 1 {
-        let mut score = 0;
-        for y in (tree_y + 1)..rows {
-            let tree = data[y][tree_x];
-            score += 1;
-            if tree >= tree_in {
-                break;
-            }
-        }
-        score_out *= score;
-    } else { return 0 }
+    score_out *= score_for_line(tree_in, ((0..tree_y).rev()).map(|y| data[y][tree_x]));
+    score_out *= score_for_line(tree_in, ((tree_y + 1)..rows).map(|y| data[y][tree_x]));
 
     return score_out;
 }
