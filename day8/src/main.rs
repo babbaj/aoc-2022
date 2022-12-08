@@ -14,7 +14,7 @@ where I: Iterator<Item = ((usize, usize), u8)>
     }
 }
 
-fn score_for_line<I>(tree_in: u8, mut line: I) -> i32
+fn score_for_line<I>(tree_in: u8, mut line: I) -> i64
     where I: Iterator<Item = u8>
 {
     let mut out = 0;
@@ -27,11 +27,11 @@ fn score_for_line<I>(tree_in: u8, mut line: I) -> i32
     return out;
 }
 
-fn scenic_score(data: &Vec<Vec<u8>>, tree_x: usize, tree_y: usize) -> i32 {
+fn scenic_score(data: &Vec<Vec<u8>>, tree_x: usize, tree_y: usize) -> i64 {
     let cols = data[0].len();
     let rows = data.len();
     let tree_in = data[tree_y][tree_x];
-    let mut score_out = 1;
+    let mut score_out = 1i64;
     score_out *= score_for_line(tree_in, ((0..tree_x).rev()).map(|x| data[tree_y][x]));
     score_out *= score_for_line(tree_in, ((tree_x + 1)..cols).map(|x| data[tree_y][x]));
 
@@ -42,7 +42,7 @@ fn scenic_score(data: &Vec<Vec<u8>>, tree_x: usize, tree_y: usize) -> i32 {
 }
 
 fn main() {
-    let input = include_str!("../input");
+    let input = include_str!("../bigboy.txt");
     // list of rows
     // [y][x]
     let data: Vec<Vec<u8>> = input.lines()
