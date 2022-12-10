@@ -5,19 +5,24 @@ enum Instruction {
     Addx(i32)
 }
 
-fn main() {
-    let input = include_str!("../input");
-    let instructions = input.lines()
-        .map(|line| match &line[0..4] {
-            "noop" => Instruction::Noop,
-            "addx" => {
-                let (_, num) = line.split_once(' ').unwrap();
-                Instruction::Addx(num.parse().unwrap())
-            },
-            _ => unreachable!()
-        });
+fn parse_line(line: &[u8]) -> Instruction {
+    let instruction = &line[0..4];
+    if instruction == b"noop" {
+        return Instruction::Noop;
+    }
+    if instruction == b"addx" {
+        let num = unsafe { str::from_utf8_unchecked(&line[5..]) };
+        return Instruction::Addx(num.parse().unwrap());
+    }
+    panic!("bad input");
+}
 
-    let values = instructions.clone()
+fn main() {
+    let input = include_bytes!("../input");
+    let instructions = input.split(|b| *b == b'\n')
+        .map(parse_line);
+
+    let values = instructions
         .scan((1, 1), |(cycle, x), inst| {
             let val = *x;
             let n = match inst {
@@ -46,7 +51,6 @@ fn main() {
             crt[row as usize][col as usize] = b'#';
         }
     });
-
 
     println!("part 1 = {}", part1);
     render_crt(&crt);
