@@ -1,4 +1,4 @@
-use std::{mem, str};
+use std::str;
 
 enum Instruction {
     Noop,
@@ -17,44 +17,38 @@ fn main() {
             _ => unreachable!()
         });
 
-    let mut x = 1;
-    let mut values = Vec::new();
-
-    for inst in instructions {
-        match inst {
-            Instruction::Noop => {
-                values.push(x);
-            },
-            Instruction::Addx(num) => {
-                values.push(x);
-                values.push(x);
-                x += num;
-            }
-        }
-    }
-
-    let with_cycles = || values.iter().copied()
+    let values = instructions.clone()
+        .scan((1, 1), |(cycle, x), inst| {
+            let val = *x;
+            let n = match inst {
+                Instruction::Noop => 1,
+                Instruction::Addx(num) => {
+                    *x += num;
+                    2
+                }
+            };
+            *cycle += 1;
+            Some(std::iter::repeat(val).take(n))
+        })
+        .flatten()
         .enumerate()
-        .map(|(i, x)| ((i + 1) as i32, x));
+        .map(|(i, x) | (i as i32 + 1, x));
 
-    let sum: i32 = with_cycles()
-        .skip(19)
-        .step_by(40)
-        .take(6)
-        .map(|(i, x)| x * i)
-        .sum();
-    println!("part 1 = {}", sum);
-
-
+    let mut part1 = 0;
     let mut crt = [[b' '; 40]; 6];
-    for (cycle, x) in with_cycles() {
+    values.for_each(| (cycle, x)| {
+        if (cycle - 20) % 40 == 0 && cycle <= 220 { part1 += x * cycle };
+
         let index = cycle - 1;
         let row = index / 40;
         let col = index % 40;
         if [x - 1, x, x + 1].contains(&col) {
             crt[row as usize][col as usize] = b'#';
         }
-    }
+    });
+
+
+    println!("part 1 = {}", part1);
     render_crt(&crt);
 }
 
