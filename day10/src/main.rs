@@ -23,7 +23,7 @@ fn main() {
         .map(parse_line);
 
     let values = instructions
-        .scan((1, 1), |(cycle, x), inst| {
+        .scan(1, |x, inst| {
             let val = *x;
             let n = match inst {
                 Instruction::Noop => 1,
@@ -32,7 +32,6 @@ fn main() {
                     2
                 }
             };
-            *cycle += 1;
             Some(std::iter::repeat(val).take(n))
         })
         .flatten()

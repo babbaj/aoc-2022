@@ -155,11 +155,10 @@ fn main() {
         .sum::<usize>();
     println!("part 1 = {}", part1);
 
-    const TOTAL_SPACE: usize = 70000000;
-    const REQUIRED_FREE_SPACE: usize = 30000000;
+    const TOTAL_SPACE: usize = 3000000000;
+    const REQUIRED_FREE_SPACE: usize = 700000000;
     let free_space = TOTAL_SPACE - total_size;
     let to_be_freed = REQUIRED_FREE_SPACE - free_space;
-    println!("need to free {} space", to_be_freed);
     let part2 = sizes.iter().copied()
         .filter_map(|(_, size)| if size >= to_be_freed { Some(size) } else { None })
         .min()
