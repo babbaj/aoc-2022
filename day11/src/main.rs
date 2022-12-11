@@ -10,8 +10,8 @@ use crate::Operation::{AddConst, MulConst};
 #[derive(Clone, Copy)]
 enum Operation {
     MulOld,
-    AddConst(i32),
-    MulConst(i32)
+    AddConst(i64),
+    MulConst(i64)
 }
 
 #[derive(Clone, Copy)]
@@ -21,7 +21,7 @@ struct Test {
 }
 
 struct Monkey {
-    starting_items: Vec<i32>,
+    starting_items: Vec<i64>,
     operation: Operation,
     test: Test
 }
@@ -29,12 +29,15 @@ struct Monkey {
 fn parse_num(input: &str) -> IResult<&str, i32> {
     map_res(digit1, |x| i32::from_str_radix(x, 10))(input)
 }
+fn parse_64(input: &str) -> IResult<&str, i64> {
+    map_res(digit1, |x| i64::from_str_radix(x, 10))(input)
+}
 
 fn parse_operation(i: &str) -> IResult<&str, Operation> {
     let (i, _) = tag("old ")(i)?;
     let (i, op) = alt((
         value(Operation::MulOld, tag("* old")),
-        map(separated_pair(alt((char('+'), char('*'))), char(' '), parse_num), |(op, num)| match op {
+        map(separated_pair(alt((char('+'), char('*'))), char(' '), parse_64), |(op, num)| match op {
             '+' => AddConst(num),
             '*' => MulConst(num),
             _ => unreachable!()
@@ -53,7 +56,7 @@ fn parse_throw_to(i: &str) -> IResult<&str, (i32, i32)> {
 
 fn parse_monkey(i: &str) -> IResult<&str, Monkey> {
     let (i, _) = recognize(tuple((tag("Monkey "), digit1, char(':'), line_ending)))(i)?;
-    let (i, items) = terminated(preceded(tag("  Starting items: "), separated_list1(tag(", "), parse_num)), line_ending)(i)?;
+    let (i, items) = terminated(preceded(tag("  Starting items: "), separated_list1(tag(", "), parse_64)), line_ending)(i)?;
     let (i, op) = terminated(preceded(tag("  Operation: new = "), parse_operation), line_ending)(i)?;
     let (i, div_by) = terminated(preceded(tag("  Test: divisible by "), parse_num), line_ending)(i)?;
     let (i, throw_to) = parse_throw_to(i)?;
@@ -72,15 +75,15 @@ fn parse_input(i: &str) -> IResult<&str, Vec<Monkey>> {
     separated_list1(pair(line_ending, line_ending),parse_monkey)(i)
 }
 
-fn do_test(test: Test, worry: i32) -> i32 {
-    if worry % test.divisible_by == 0 {
+fn do_test(test: Test, worry: i64) -> i32 {
+    if worry % (test.divisible_by as i64) == 0 {
         test.throw_to.0
     } else {
         test.throw_to.1
     }
 }
 
-fn apply_op(op: Operation, item: i32) -> i32 {
+fn apply_op(op: Operation, item: i64) -> i64 {
     match op {
         Operation::MulOld => item * item,
         MulConst(x) => item * x,
@@ -88,13 +91,15 @@ fn apply_op(op: Operation, item: i32) -> i32 {
     }
 }
 
-fn do_round(monkeys: &mut Vec<(i32, Monkey)>) {
+fn do_round(monkeys: &mut Vec<(i64, Monkey)>) {
     for i in 0..monkeys.len() {
-        let (inspections, monk): &mut (i32, Monkey) = unsafe { &mut *(&mut monkeys[i] as *mut _) };
+        let (inspections, monk): &mut (i64, Monkey) = unsafe { &mut *(&mut monkeys[i] as *mut _) };
 
         monk.starting_items.drain(..).for_each(|item| {
             let mut worry = apply_op(monk.operation, item);
-            worry /= 3;
+            //worry /= 3;
+            //worry = worry % 96577;
+            worry = worry % 9699690; // LCM
             let throw_to = do_test(monk.test, worry);
             assert_ne!(i as i32, throw_to);
             monkeys[throw_to as usize].1.starting_items.push(worry);
@@ -109,7 +114,7 @@ fn main() {
     assert!(rest.is_empty());
 
     let mut monkeys = monkeys_parsed.into_iter().map(|m| (0, m)).collect();
-    for _ in 0..20 {
+    for r in 0..10000 {
         do_round(&mut monkeys);
     }
     let mut sorted_inspections = monkeys.iter().map(|(inspections, _)| *inspections).collect::<Vec<_>>();
