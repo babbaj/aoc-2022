@@ -7,6 +7,14 @@ enum Cell {
     H(u8)
 }
 
+fn height(cell: Cell) -> u8 {
+    match cell {
+        Cell::Start => 0,
+        Cell::End => (b'z' - b'a'),
+        Cell::H(h) => h
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
 struct Node {
     x: i32,
@@ -15,9 +23,6 @@ struct Node {
 }
 
 type Map = Vec<Vec<Cell>>;
-
-const END_HEIGHT: u8 = (b'z' - b'a');
-const START_HEIGHT: u8 = 0;
 
 fn neighbors<'a>(node: Node, map: &'a Map) -> impl Iterator<Item = Node> + 'a
 {
@@ -28,20 +33,11 @@ fn neighbors<'a>(node: Node, map: &'a Map) -> impl Iterator<Item = Node> + 'a
         .into_iter()
         .filter(move |(x, y)| (0..size_x).contains(&x) && (0..size_y).contains(&y))
         .map(|(x, y)| Node {x, y, cell: map[y as usize][x as usize]})
-        .filter(move |neighbor| match (node.cell, neighbor.cell) {
-            (Cell::H(node_height), Cell::H(neighbor_height)) => neighbor_height <= node_height + 1,
-            (Cell::H(node_height), Cell::End) => node_height >= END_HEIGHT - 1,
-            (Cell::H(_), Cell::Start) => true,
-            (Cell::Start, Cell::H(neighbor_height)) => neighbor_height <= START_HEIGHT + 1,
-            (Cell::Start, Cell::End) => unreachable!("lol"),
-            (Cell::End, _) => unreachable!("end node trying to check neighbors?"),
-            (_, Cell::Start) => unreachable!("trying to visit start node")
-        })
+        .filter(move |neighbor| height(neighbor.cell) <= height(node.cell) + 1)
 }
 
 
-
-fn dijkstras0(graph: &Map, start: Node) -> (Vec<Vec<i32>>, Vec<Vec<Option<Node>>>) {
+fn dijkstras0(graph: &Map, start: Node) -> Option<(Vec<Vec<i32>>, Vec<Vec<Option<Node>>>)> {
     let mut dist = vec![vec![i32::MAX; graph[0].len()]; graph.len()];
     let mut prev = vec![vec![Option::<Node>::None; graph[0].len()]; graph.len()];
 
@@ -55,7 +51,10 @@ fn dijkstras0(graph: &Map, start: Node) -> (Vec<Vec<i32>>, Vec<Vec<Option<Node>>
 
     while !Q.is_empty() {
         let u = *Q.iter().min_by_key(|node| dist[node.y as usize][node.x as usize]).unwrap();
-        assert_ne!(dist[u.y as usize][u.x as usize], i32::MAX);
+        //assert_ne!(dist[u.y as usize][u.x as usize], i32::MAX);
+        if dist[u.y as usize][u.x as usize] == i32::MAX {
+            return None;
+        }
         if u.cell == Cell::End {
             break;
         }
@@ -71,22 +70,25 @@ fn dijkstras0(graph: &Map, start: Node) -> (Vec<Vec<i32>>, Vec<Vec<Option<Node>>
                 }
             });
     }
-    (dist, prev)
+    Some((dist, prev))
 }
 
-fn dijkstras(graph: &Map, start: Node, target: Node) -> Vec<Node> {
-    assert_eq!(start.cell, Cell::Start);
+fn dijkstras(graph: &Map, start: Node, target: Node) -> Option<Vec<Node>> {
     assert_eq!(target.cell, Cell::End);
-    let (dist, prev) = dijkstras0(graph, start);
-    let mut S = Vec::new();
-    let mut u = target;
-    if prev[u.y as usize][u.x as usize].is_some() {
-        while let Some(prev_node) = prev[u.y as usize][u.x as usize] {
-            S.push(u);
-            u = prev_node;
-        }
+    match dijkstras0(graph, start) {
+        Some((dist, prev)) => {
+            let mut S = Vec::new();
+            let mut u = target;
+            if prev[u.y as usize][u.x as usize].is_some() {
+                while let Some(prev_node) = prev[u.y as usize][u.x as usize] {
+                    S.push(u);
+                    u = prev_node;
+                }
+            }
+            Some(S)
+        },
+        None => None
     }
-    S
 }
 
 
@@ -101,22 +103,28 @@ fn main() {
         .collect();
 
     // lazy lol
-    let mut start = Node { x: 0, y: 0, cell: Cell::Start };
+    //let mut start = Node { x: 0, y: 0, cell: Cell::Start };
     let mut end = Node { x: 0, y: 0, cell: Cell::End };
     for y in 0..map.len() {
         for x in 0..map[0].len() {
             let cell = map[y][x];
-            if cell == Cell::Start {
+            /*if cell == Cell::Start {
                 start.x = x as i32;
                 start.y = y as i32;
-            }
+            }*/
             if cell == Cell::End {
                 end.x = x as i32;
                 end.y = y as i32;
             }
         }
     }
-    let path = dijkstras(&map, start, end);
+    //let path = dijkstras(&map, start, end);
+    let min = (0..map[0].len()).flat_map(|x| (0..map.len()).map(move |y| (x, y)))//(0..map.len()).flat_map(|x| (0..map[0].len().flat_map(move |y| (x, y))))
+        .filter(|(x, y)| map[*y][*x] == Cell::H(0))
+        .filter_map(|(x, y)| dijkstras(&map, Node {x: x as i32, y: y as i32, cell: Cell::H(0)}, end))
+        .map(|path| path.len())
+        .min();
+    println!("{}", min.unwrap())
 
-    println!("path size = {}", path.len());
+    //println!("path size = {}", path.len());
 }
