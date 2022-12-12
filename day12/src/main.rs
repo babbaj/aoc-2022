@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet, VecDeque};
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
 enum Cell {
@@ -24,7 +24,7 @@ struct Node {
 
 type Map = Vec<Vec<Cell>>;
 
-fn neighbors<'a>(node: Node, map: &'a Map) -> impl Iterator<Item = Node> + 'a
+fn neighbors<'a>(node: Node, map: &'a Map, ascending: bool) -> impl Iterator<Item = Node> + 'a
 {
     let size_x = map[0].len() as isize;
     let size_y = map.len() as isize;
@@ -34,67 +34,36 @@ fn neighbors<'a>(node: Node, map: &'a Map) -> impl Iterator<Item = Node> + 'a
         .filter(move |(x, y)| (0..size_x).contains(&x) && (0..size_y).contains(&y))
         .map(|(x, y)| (x as usize, y as usize))
         .map(|(x, y)| Node {x, y, cell: map[y][x]})
-        .filter(move |neighbor| height(neighbor.cell) <= height(node.cell) + 1)
+        .filter(move |neighbor|
+            if ascending { height(neighbor.cell) <= height(node.cell) + 1 }
+            else { height(neighbor.cell) + 1 >= height(node.cell) }
+        )
 }
 
 
-fn dijkstras0(graph: &Map, start: Node) -> Option<Vec<Vec<Option<Node>>>> {
-    let mut dist = vec![vec![i32::MAX; graph[0].len()]; graph.len()];
-    let mut prev = vec![vec![Option::<Node>::None; graph[0].len()]; graph.len()];
-
-    dist[start.y][start.x] = 0;
-    let mut unvisited = HashSet::<Node>::new();
-    for y in 0..graph.len() {
-        for x in 0..graph[0].len() {
-            unvisited.insert(Node { x, y, cell: graph[y][x]});
+fn bfs<P: Fn(Node) -> bool>(graph: &Map, start: Node, ascending: bool, pred: P) -> Option<i32> {
+    let mut visited = HashSet::new();
+    let mut queue = VecDeque::new();
+    queue.push_back((0usize, start));
+    while !queue.is_empty() {
+        let (depth, node) = queue.pop_front().unwrap();
+        if pred(node) {
+            return Some(depth as i32);
         }
-    }
-
-    while !unvisited.is_empty() {
-        let current = *unvisited.iter().min_by_key(|node| dist[node.y][node.x]).unwrap();
-        if dist[current.y][current.x] == i32::MAX {
-            return None;
-        }
-        if current.cell == Cell::End {
-            break;
-        }
-
-        unvisited.remove(&current);
-
-        neighbors(current, graph).filter(|neighbor| unvisited.contains(neighbor))
-            .for_each(|neighbor| {
-                let alt = dist[current.y][current.x] + 1;
-                if alt <= dist[neighbor.y][neighbor.x] {
-                    dist[neighbor.y][neighbor.x] = alt;
-                    prev[neighbor.y][neighbor.x] = Some(current);
-                }
-            });
-    }
-    Some(prev)
-}
-
-fn dijkstras(graph: &Map, start: Node, target: Node) -> Option<Vec<Node>> {
-    assert_eq!(target.cell, Cell::End);
-    match dijkstras0(graph, start) {
-        Some(prev) => {
-            let mut path = Vec::new();
-            let mut node = target;
-            if prev[node.y][node.x].is_some() {
-                while let Some(prev_node) = prev[node.y][node.x] {
-                    path.push(node);
-                    node = prev_node;
-                }
+        neighbors(node, graph, ascending).for_each(|neighbor| {
+            if visited.insert(neighbor) {
+                queue.push_back((depth + 1, neighbor));
             }
-            Some(path)
-        },
-        None => None
+        });
     }
+    None
 }
 
 
 fn main() {
-    let input = include_bytes!("../input");
+    let input = include_bytes!("../bigboy.txt");
     let map: Map = input.split(|c| *c == b'\n')
+        .filter(|l| l.len() > 0)
         .map(|line| line.iter().map(|c| match c {
             b'S' => Cell::Start,
             b'E' => Cell::End,
@@ -102,29 +71,25 @@ fn main() {
         }).collect())
         .collect();
 
-    // lazy lol
-    //let mut start = Node { x: 0, y: 0, cell: Cell::Start };
-    let mut end = Node { x: 0, y: 0, cell: Cell::End };
+    let mut start = None;
+    let mut end = None;
     for y in 0..map.len() {
         for x in 0..map[0].len() {
             let cell = map[y][x];
-            /*if cell == Cell::Start {
-                start.x = x as i32;
-                start.y = y as i32;
-            }*/
             if cell == Cell::End {
-                end.x = x;
-                end.y = y;
+                end = Some(Node { x, y, cell });
+            }
+            if cell == Cell::Start {
+                start = Some(Node { x, y, cell });
+            }
+            if start.is_some() && end.is_some() {
+                break;
             }
         }
-    }
-    //let path = dijkstras(&map, start, end);
-    let min = (0..map[0].len()).flat_map(|x| (0..map.len()).map(move |y| (x, y)))
-        .filter(|(x, y)| map[*y][*x] == Cell::H(0))
-        .filter_map(|(x, y)| dijkstras(&map, Node {x, y, cell: Cell::H(0)}, end))
-        .map(|path| path.len())
-        .min();
-    println!("{}", min.unwrap())
+    };
 
-    //println!("path size = {}", path.len());
+    let part1 = bfs(&map, start.unwrap(), true, |node| node.cell == Cell::End);
+    println!("part 1 = {}", part1.unwrap());
+    let part2 = bfs(&map, end.unwrap(), false, |node| height(node.cell) == 0);
+    println!("part 2 = {}", part2.unwrap());
 }
