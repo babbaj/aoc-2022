@@ -114,7 +114,7 @@ fn main() {
     assert!(rest.is_empty());
 
     let mut monkeys = monkeys_parsed.into_iter().map(|m| (0, m)).collect();
-    for r in 0..10000 {
+    for _r in 0..10000 {
         do_round(&mut monkeys);
     }
     let mut sorted_inspections = monkeys.iter().map(|(inspections, _)| *inspections).collect::<Vec<_>>();
