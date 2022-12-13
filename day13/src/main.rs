@@ -28,22 +28,24 @@ fn parse_packet(packet: &str) -> IResult<&str, Packet> {
     ))(packet)
 }
 
+fn compare_slice(left: &[Packet], right: &[Packet]) -> Ordering {
+    let len = min(left.len(), right.len());
+    for i in 0..len {
+        let order = compare(&left[i], &right[i]);
+        if order != Ordering::Equal {
+            return order;
+        }
+    }
+
+    return left.len().cmp(&right.len());
+}
+
 fn compare(first: &Packet, second: &Packet) -> Ordering {
     match (first, second) {
         (Num(n1), Num(n2)) => n1.cmp(n2),
-        (List(l1), List(l2)) => {
-            let len = min(l1.len(), l2.len());
-            for i in 0..len {
-                let order = compare(&l1[i], &l2[i]);
-                if order != Ordering::Equal {
-                    return order;
-                }
-            }
-
-            return l1.len().cmp(&l2.len());
-        },
-        (List(_), Num(n2)) => compare(first, &List(vec![Num(*n2)])),
-        (Num(n1), List(_)) => compare(&List(vec![Num(*n1)]), second)
+        (List(left), List(right)) => compare_slice(left, right),
+        (List(left), Num(right)) => compare_slice(left, &[Num(*right)]),
+        (Num(left), List(right)) => compare_slice(&[Num(*left)], right)
     }
 }
 
