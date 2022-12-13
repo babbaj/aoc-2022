@@ -41,20 +41,27 @@ fn neighbors<'a>(node: Node, map: &'a Map, ascending: bool) -> impl Iterator<Ite
 }
 
 
-fn bfs<P: Fn(Node) -> bool>(graph: &Map, start: Node, ascending: bool, pred: P) -> Option<i32> {
+fn bfs_solve(graph: &Map, start: Node) -> Option<(usize, usize)> {
     let mut visited = HashSet::new();
     let mut queue = VecDeque::new();
     queue.push_back((0usize, start));
+    let mut closest = None;
+    let mut start = None;
     while !queue.is_empty() {
         let (depth, node) = queue.pop_front().unwrap();
-        if pred(node) {
-            return Some(depth as i32);
+        if start.is_none() && node.cell == Cell::Start {
+            start = Some(depth);
         }
-        neighbors(node, graph, ascending).for_each(|neighbor| {
-            if visited.insert(neighbor) {
-                queue.push_back((depth + 1, neighbor));
-            }
-        });
+        if closest.is_none() && node.cell == Cell::H(0u8) {
+            closest = Some(depth);
+        }
+        if start.is_some() && closest.is_some() {
+            return Some((start.unwrap(), closest.unwrap()));
+        }
+
+        neighbors(node, graph, false)
+            .filter(|n| visited.insert(*n))
+            .for_each(|neighbor| queue.push_back((depth + 1, neighbor)));
     }
     None
 }
@@ -71,25 +78,17 @@ fn main() {
         }).collect())
         .collect();
 
-    let mut start = None;
     let mut end = None;
     for y in 0..map.len() {
         for x in 0..map[0].len() {
             let cell = map[y][x];
             if cell == Cell::End {
                 end = Some(Node { x, y, cell });
-            }
-            if cell == Cell::Start {
-                start = Some(Node { x, y, cell });
-            }
-            if start.is_some() && end.is_some() {
                 break;
             }
         }
     };
 
-    let part1 = bfs(&map, start.unwrap(), true, |node| node.cell == Cell::End);
-    println!("part 1 = {}", part1.unwrap());
-    let part2 = bfs(&map, end.unwrap(), false, |node| height(node.cell) == 0);
-    println!("part 2 = {}", part2.unwrap());
+    let (part1, part2) = bfs_solve(&map, end.unwrap()).unwrap();
+    println!("part 1 = {}, part 2 = {}", part1, part2);
 }
