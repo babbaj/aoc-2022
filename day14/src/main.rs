@@ -81,12 +81,11 @@ fn simulate_sand(grid: &Vec<Vec<Cell>>, start_x: i32) -> Option<Pos> {
         }
         sand = (x, y);
     }*/
+    if grid[0usize][start_x as usize] == Sand {
+        return None
+    }
     while let Some((x, y)) = next_pos(grid, sand) {
-        if y == 0 && grid[0usize][start_x as usize] == Sand {
-            return None
-        }
         sand = (x, y)
-
     }
     Some(sand)
 }
@@ -121,7 +120,4 @@ fn main() {
     populate_rocks(&mut grid, &rocks, min_x);
 
     do_simulation(&mut grid, min_x);
-
-
-    println!("Hello, world!");
 }
