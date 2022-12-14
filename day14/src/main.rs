@@ -44,13 +44,16 @@ fn populate_rocks(grid: &mut Vec<Vec<Cell>>, rocks: &Vec<Vec<Pos>>, min_x: i32) 
         v.windows(2)
             .for_each(|w| do_line(w[0], w[1], |x, y| {
                 grid[y as usize]
-                    [(x - min_x) as usize] = Rock;
+                    [( 1000 + (x - min_x)) as usize] = Rock;
             }))
     }
 }
 
 // returns None if at rest
 fn next_pos(grid: &Vec<Vec<Cell>>, sand: Pos) -> Option<Pos> {
+    if sand.1 == (grid.len() - 2) as i32 {
+        return None
+    }
     if get(grid, down(sand)) == Air {
         return Some(down(sand))
     }
@@ -64,11 +67,12 @@ fn next_pos(grid: &Vec<Vec<Cell>>, sand: Pos) -> Option<Pos> {
 }
 
 // returns None if the sand has nowhere to rest
+// part 2: returns None if clogged
 fn simulate_sand(grid: &Vec<Vec<Cell>>, start_x: i32) -> Option<Pos> {
     let max_y = (grid.len() - 1) as i32;
     let max_x = (grid[0].len() - 1) as i32;
     let mut sand = (start_x, 0);
-    while let Some((x, y)) = next_pos(grid, sand) {
+    /*while let Some((x, y)) = next_pos(grid, sand) {
         if x < 0 || x > max_x {
             return None
         }
@@ -76,18 +80,25 @@ fn simulate_sand(grid: &Vec<Vec<Cell>>, start_x: i32) -> Option<Pos> {
             return None
         }
         sand = (x, y);
+    }*/
+    while let Some((x, y)) = next_pos(grid, sand) {
+        if y == 0 && grid[0usize][start_x as usize] == Sand {
+            return None
+        }
+        sand = (x, y)
+
     }
     Some(sand)
 }
 
 fn do_simulation(grid: &mut Vec<Vec<Cell>>, min_x: i32) {
     let mut at_rest = 0;
-    let start_x = 500 - min_x;
-   while let Some((x, y)) = simulate_sand(grid, start_x) {
-       assert_eq!(grid[y as usize][x as usize], Air);
-       grid[y as usize][x as usize] = Sand;
-       at_rest += 1;
-   }
+    let start_x = (500 - min_x) + 1000;
+    while let Some((x, y)) = simulate_sand(grid, start_x) {
+        assert_eq!(grid[y as usize][x as usize], Air);
+        grid[y as usize][x as usize] = Sand;
+        at_rest += 1;
+    }
     println!("at_rest = {}", at_rest);
 }
 
@@ -104,7 +115,8 @@ fn main() {
             (cmp::min(min_x, x), (cmp::max(max_x, x), cmp::max(max_y, y)))
         });
     let (width, height) = ((max_x - min_x) + 1, max_y + 1);
-
+    let width = 2000;
+    let height = height + 2;
     let mut grid = vec![vec![Air; width as usize]; height as usize];
     populate_rocks(&mut grid, &rocks, min_x);
 
