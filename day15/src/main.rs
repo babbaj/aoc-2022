@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::ops::Range;
 
 type Pos = (i32, i32);
 
@@ -31,6 +30,36 @@ fn row_at_offset(scanner_x: i32, dist_to_beacon: i32, y_offset: i32) -> Option<(
     Some(((scanner_x - x_offset), (scanner_x + x_offset)))
 }
 
+
+// size = dist to beacon
+fn scan_boundary<F: Fn(i32, i32)>((sex, sy): Pos, size: i32, f: F) {
+    let points = [(0, 1), (1, 0), (0, -1), (-1, 0)] // up, right, down, left
+        .map(|(dx, dy)| ((sex + dx * (size + 1)), (sy + dy * (size + 1))));
+    let mut iter = points.iter().cycle().peekable();
+    for _ in 0..4 {
+        let (mut x, mut y) = iter.next().unwrap();
+        let (next_x, next_y) = iter.peek().unwrap();
+        let (dx, dy) = ((next_x - x).signum(), (next_y - y).signum());
+        while (x, y) != (*next_x, *next_y) {
+            f(x, y);
+            (x, y) = (x + dx, y + dy);
+        }
+    }
+}
+
+fn in_scanner_range(point: Pos, scanner: Pos, range: i32) -> bool {
+    dist(point, scanner) <=  range
+}
+
+fn valid(x: i32, y: i32) -> bool {
+    let max = 4000000;
+    //let max = 20;
+    x > 0 && x <= max && y > 0 && y <= max
+}
+fn tuning_frequency(x: i32, y: i32) -> i64 {
+    (x as i64) * 4000000 + (y as i64)
+}
+
 fn main() {
     let input = include_str!("../input");
 
@@ -38,10 +67,29 @@ fn main() {
         .map(parse_line)
         .collect::<Vec<_>>();
 
-    const ROW: i32 = 2000000;
-    //const ROW: i32 = 10;
+    //part1(&nodes);
 
-    let mut sum = 0;
+    for ((sex, sy), (bx, by)) in nodes.iter().copied() {
+        let d = dist((sex, sy), (bx, by));
+        scan_boundary((sex, sy), d, |x, y| {
+            if !nodes.iter().copied().any(|((sex, sy), (bx, by))| {
+                let range = dist((sex, sy), (bx, by));
+                in_scanner_range((x, y), (sex, sy), range)
+            })
+            {
+                if valid(x, y) {
+                    println!("{:?}", (x, y));
+                    println!("tuning = {}", tuning_frequency(x, y));
+                    std::process::exit(0); // lol
+                }
+            }
+        })
+    }
+}
+
+fn part1(nodes: &Vec<(Pos, Pos)>) {
+    const ROW: i32 = 2000000;
+
     let ranges = nodes.iter().copied()
         .filter_map(|((sex, sy), beacon)| {
             let dist = dist((sex, sy), beacon);
@@ -61,5 +109,5 @@ fn main() {
         }
     }
 
-    println!("{}", set.len());
+    println!("part 1 = {}", set.len());
 }
